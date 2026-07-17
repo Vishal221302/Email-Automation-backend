@@ -76,7 +76,8 @@ const Email = sequelize.define('Email', {
     onDelete: 'CASCADE'
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  tableName: 'emails'
 });
 
 User.hasMany(Email, { foreignKey: 'userId', as: 'emails' });

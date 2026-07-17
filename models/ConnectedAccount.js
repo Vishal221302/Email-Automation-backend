@@ -61,7 +61,8 @@ const ConnectedAccount = sequelize.define('ConnectedAccount', {
     onDelete: 'CASCADE'
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  tableName: 'connectedaccounts'
 });
 
 // Associations

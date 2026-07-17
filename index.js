@@ -52,7 +52,7 @@ app.get('/', (req, res) => {
 });
 
 // Database Sync and Server Listen
-sequelize.sync({ alter: true })
+sequelize.sync()
   .then(() => {
     console.log('✔ MySQL Database Models Synchronized successfully.');
     app.listen(PORT, () => {

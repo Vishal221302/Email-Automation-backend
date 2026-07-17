@@ -68,7 +68,8 @@ const ScheduledEmail = sequelize.define('ScheduledEmail', {
     onDelete: 'CASCADE'
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  tableName: 'scheduledemails'
 });
 
 User.hasMany(ScheduledEmail, { foreignKey: 'userId', as: 'schedules' });

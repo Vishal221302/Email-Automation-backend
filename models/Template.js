@@ -48,7 +48,8 @@ const Template = sequelize.define('Template', {
     onDelete: 'CASCADE'
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  tableName: 'templates'
 });
 
 User.hasMany(Template, { foreignKey: 'userId', as: 'templates' });
