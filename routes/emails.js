@@ -14,7 +14,7 @@ async function sendGmailAPI(account, to, subject, body, attachments = []) {
   const oauth2Client = new google.auth.OAuth2(
     account.clientId,
     account.clientSecret,
-    'http://localhost:5000/api/accounts/oauth/callback'
+    'https://email-automation-backend-dl1c.onrender.com/api/accounts/oauth/callback'
   );
 
   oauth2Client.setCredentials({

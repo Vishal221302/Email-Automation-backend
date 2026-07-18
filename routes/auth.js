@@ -263,8 +263,8 @@ const FACEBOOK_AUTH_URL = 'https://www.facebook.com/v12.0/dialog/oauth';
 const FACEBOOK_TOKEN_URL = 'https://graph.facebook.com/v12.0/oauth/access_token';
 const FACEBOOK_USER_INFO = 'https://graph.facebook.com/me';
 
-const REDIRECT_URI_GOOGLE = 'http://localhost:5000/api/auth/google/callback';
-const REDIRECT_URI_FB = 'http://localhost:5000/api/auth/facebook/callback';
+const REDIRECT_URI_GOOGLE = 'https://email-automation-backend-dl1c.onrender.com/api/auth/google/callback';
+const REDIRECT_URI_FB = 'https://email-automation-backend-dl1c.onrender.com/api/auth/facebook/callback';
 
 // 1. Google OAuth Authentication Redirect URL
 router.get('/google', (req, res) => {
@@ -294,10 +294,10 @@ router.get('/google/callback', async (req, res) => {
   const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = process.env;
 
   if (error) {
-    return res.redirect(`http://localhost:5173/login?error=${encodeURIComponent(error)}`);
+    return res.redirect(`https://email-automation-ashy-nu.vercel.app/login?error=${encodeURIComponent(error)}`);
   }
   if (!code) {
-    return res.redirect('http://localhost:5173/login?error=Google auth code missing');
+    return res.redirect('https://email-automation-ashy-nu.vercel.app/login?error=Google auth code missing');
   }
 
   try {
@@ -382,9 +382,9 @@ router.get('/google/callback', async (req, res) => {
       avatar: user.avatar
     };
 
-    res.redirect(`http://localhost:5173/login-success?token=${token}&user=${encodeURIComponent(JSON.stringify(userPayload))}`);
+    res.redirect(`https://email-automation-ashy-nu.vercel.app/login-success?token=${token}&user=${encodeURIComponent(JSON.stringify(userPayload))}`);
   } catch (err) {
-    res.redirect(`http://localhost:5173/login?error=${encodeURIComponent(err.message)}`);
+    res.redirect(`https://email-automation-ashy-nu.vercel.app/login?error=${encodeURIComponent(err.message)}`);
   }
 });
 
@@ -416,10 +416,10 @@ router.get('/facebook/callback', async (req, res) => {
   const { FACEBOOK_APP_ID, FACEBOOK_APP_SECRET } = process.env;
 
   if (error) {
-    return res.redirect(`http://localhost:5173/login?error=${encodeURIComponent(error)}`);
+    return res.redirect(`https://email-automation-ashy-nu.vercel.app/login?error=${encodeURIComponent(error)}`);
   }
   if (!code) {
-    return res.redirect('http://localhost:5173/login?error=Facebook auth code missing');
+    return res.redirect('https://email-automation-ashy-nu.vercel.app/login?error=Facebook auth code missing');
   }
 
   try {
@@ -492,9 +492,9 @@ router.get('/facebook/callback', async (req, res) => {
       avatar: user.avatar
     };
 
-    res.redirect(`http://localhost:5173/login-success?token=${token}&user=${encodeURIComponent(JSON.stringify(userPayload))}`);
+    res.redirect(`https://email-automation-ashy-nu.vercel.app/login-success?token=${token}&user=${encodeURIComponent(JSON.stringify(userPayload))}`);
   } catch (err) {
-    res.redirect(`http://localhost:5173/login?error=${encodeURIComponent(err.message)}`);
+    res.redirect(`https://email-automation-ashy-nu.vercel.app/login?error=${encodeURIComponent(err.message)}`);
   }
 });
 

@@ -8,7 +8,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 const router = express.Router();
 
-const REDIRECT_URI = 'http://localhost:5000/api/accounts/oauth/callback';
+const REDIRECT_URI = 'https://email-automation-backend-dl1c.onrender.com/api/accounts/oauth/callback';
 
 // Parse Gmail message payloads into clean JSON structures
 function parseGmailMessage(message) {
@@ -151,12 +151,12 @@ router.get('/oauth/callback', async (req, res) => {
   const { code, state, error } = req.query;
 
   if (error) {
-    return res.redirect(`http://localhost:5173/accounts?error=${encodeURIComponent(error)}`);
+    return res.redirect(`https://email-automation-ashy-nu.vercel.app/accounts?error=${encodeURIComponent(error)}`);
   }
 
   try {
     if (!code || !state) {
-      return res.redirect(`http://localhost:5173/accounts?error=${encodeURIComponent('OAuth Callback missing params')}`);
+      return res.redirect(`https://email-automation-ashy-nu.vercel.app/accounts?error=${encodeURIComponent('OAuth Callback missing params')}`);
     }
 
     // Extract JWT token and accountId from state
@@ -174,7 +174,7 @@ router.get('/oauth/callback', async (req, res) => {
     });
 
     if (!account) {
-      return res.redirect(`http://localhost:5173/accounts?error=${encodeURIComponent('Account not found in session')}`);
+      return res.redirect(`https://email-automation-ashy-nu.vercel.app/accounts?error=${encodeURIComponent('Account not found in session')}`);
     }
 
     // Initialize OAuth2 Client dynamically
@@ -205,9 +205,9 @@ router.get('/oauth/callback', async (req, res) => {
       lastSync: new Date()
     });
 
-    res.redirect('http://localhost:5173/accounts?success=true');
+    res.redirect('https://email-automation-ashy-nu.vercel.app/accounts?success=true');
   } catch (err) {
-    res.redirect(`http://localhost:5173/accounts?error=${encodeURIComponent(err.message)}`);
+    res.redirect(`https://email-automation-ashy-nu.vercel.app/accounts?error=${encodeURIComponent(err.message)}`);
   }
 });
 
