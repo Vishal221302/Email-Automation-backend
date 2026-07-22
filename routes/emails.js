@@ -208,6 +208,10 @@ router.post('/send-now', authMiddleware, async (req, res) => {
       userId: req.userId
     });
 
+    if (!isSuccess) {
+      return res.status(400).json({ error: errorMsg, email });
+    }
+
     res.status(201).json(email);
   } catch (err) {
     res.status(500).json({ error: err.message });

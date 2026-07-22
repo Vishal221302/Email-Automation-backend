@@ -657,4 +657,28 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// Update Connected Account Credentials
+router.put('/:id', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { clientId, clientSecret, refreshToken } = req.body;
+  try {
+    const account = await ConnectedAccount.findOne({
+      where: { id, userId: req.userId }
+    });
+    if (!account) {
+      return res.status(404).json({ error: 'Connected account not found' });
+    }
+
+    account.clientId = clientId || account.clientId;
+    account.clientSecret = clientSecret || account.clientSecret;
+    account.refreshToken = refreshToken || account.refreshToken;
+    account.lastSync = new Date();
+    
+    await account.save();
+    res.json(account);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
