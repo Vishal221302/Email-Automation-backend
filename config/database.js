@@ -5,9 +5,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const dbName = process.env.DB_NAME || 'email';
-const dbUser = process.env.DB_USER || 'root';
-const dbPassword = process.env.DB_PASSWORD || '';
-const dbHost = process.env.DB_HOST || '127.0.0.1';
+const dbUser = process.env.DB_USER || 'email';
+const dbPassword = process.env.DB_PASSWORD || '1=w@5KEf=!SmeX6b';
+const dbHost = process.env.DB_HOST || 'ouzo.hostns.io';
 
 // Auto-create database if not exists
 async function ensureDatabaseExists() {
