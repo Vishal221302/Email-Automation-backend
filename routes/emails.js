@@ -6,6 +6,7 @@ import Template from '../models/Template.js';
 import authMiddleware from '../middleware/authMiddleware.js';
 import { Op } from 'sequelize';
 import { google } from 'googleapis';
+import nodemailer from 'nodemailer';
 
 const router = express.Router();
 
@@ -84,6 +85,45 @@ async function sendGmailAPI(account, to, subject, body, attachments = []) {
   return res.data;
 }
 
+// Helper to send real emails via SMTP using Nodemailer
+async function sendSMTP(account, to, subject, body, attachments = []) {
+  const host = account.clientId || 'smtp.gmail.com';
+  const port = parseInt(account.refreshToken) || 465;
+  const secure = port === 465; // SSL/TLS for 465, STARTTLS for 587
+  
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: {
+      user: account.email,
+      pass: account.clientSecret // SMTP App Password
+    },
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
+
+  const mailOptions = {
+    from: account.email,
+    to,
+    subject,
+    html: body.replace(/\n/g, '<br>'), // Preserve linebreaks
+    attachments: (attachments || []).map(file => {
+      if (!file.data) return null;
+      return {
+        filename: file.name,
+        content: Buffer.from(file.data, 'base64'),
+        contentType: file.mimeType
+      };
+    }).filter(Boolean)
+  };
+
+  const info = await transporter.sendMail(mailOptions);
+  console.log('[SMTP] Mail sent successfully:', info.messageId);
+  return info;
+}
+
 
 // Get Sent/Failed History
 router.get('/sent', authMiddleware, async (req, res) => {
@@ -123,18 +163,30 @@ router.post('/send-now', authMiddleware, async (req, res) => {
     let isSuccess = true;
     let errorMsg = null;
 
-    if (account && account.refreshToken && account.clientId && account.clientSecret) {
-      // Send REAL email via Google REST APIs
-      try {
-        await sendGmailAPI(account, to, subject, body, attachments || []);
-        isSuccess = true;
-      } catch (sendErr) {
-        console.error('Google API mail dispatch failed:', sendErr.message);
-        isSuccess = false;
-        errorMsg = `Google API Delivery Failure: ${sendErr.message}`;
+    if (account) {
+      if (account.connectionType === 'SMTP App Password') {
+        try {
+          await sendSMTP(account, to, subject, body, attachments || []);
+          isSuccess = true;
+        } catch (sendErr) {
+          console.error('[SMTP] Mail dispatch failed:', sendErr.message);
+          isSuccess = false;
+          errorMsg = `SMTP Delivery Failure: ${sendErr.message}`;
+        }
+      } else if (account.connectionType === 'Gmail OAuth' && account.refreshToken && account.clientId && account.clientSecret) {
+        try {
+          await sendGmailAPI(account, to, subject, body, attachments || []);
+          isSuccess = true;
+        } catch (sendErr) {
+          console.error('Google API mail dispatch failed:', sendErr.message);
+          isSuccess = false;
+          errorMsg = `Google API Delivery Failure: ${sendErr.message}`;
+        }
+      } else {
+        isSuccess = Math.random() > 0.05;
+        errorMsg = isSuccess ? null : 'Mail server bounced: Authentication credentials incomplete';
       }
     } else {
-      // Simulate random success rate (95% delivered, 5% failed) for demo accounts
       isSuccess = Math.random() > 0.05;
       errorMsg = isSuccess ? null : 'Mail server bounced: SMTP authentication failure';
     }
@@ -284,14 +336,28 @@ router.post('/scheduled/send-now/:id', authMiddleware, async (req, res) => {
     let isSuccess = true;
     let errorMsg = null;
 
-    if (account && account.refreshToken && account.clientId && account.clientSecret) {
-      try {
-        await sendGmailAPI(account, schedule.to, schedule.subject, schedule.body, schedule.attachments || []);
-        isSuccess = true;
-      } catch (sendErr) {
-        console.error('Google API scheduled dispatch failed:', sendErr.message);
-        isSuccess = false;
-        errorMsg = `Google API Delivery Failure: ${sendErr.message}`;
+    if (account) {
+      if (account.connectionType === 'SMTP App Password') {
+        try {
+          await sendSMTP(account, schedule.to, schedule.subject, schedule.body, schedule.attachments || []);
+          isSuccess = true;
+        } catch (sendErr) {
+          console.error('[SMTP] Scheduled mail dispatch failed:', sendErr.message);
+          isSuccess = false;
+          errorMsg = `SMTP Delivery Failure: ${sendErr.message}`;
+        }
+      } else if (account.connectionType === 'Gmail OAuth' && account.refreshToken && account.clientId && account.clientSecret) {
+        try {
+          await sendGmailAPI(account, schedule.to, schedule.subject, schedule.body, schedule.attachments || []);
+          isSuccess = true;
+        } catch (sendErr) {
+          console.error('Google API scheduled dispatch failed:', sendErr.message);
+          isSuccess = false;
+          errorMsg = `Google API Delivery Failure: ${sendErr.message}`;
+        }
+      } else {
+        isSuccess = Math.random() > 0.05;
+        errorMsg = isSuccess ? null : 'Mail server bounced: Authentication credentials incomplete';
       }
     } else {
       isSuccess = Math.random() > 0.05;
@@ -392,14 +458,28 @@ async function checkAndSendScheduledEmails() {
       let isSuccess = true;
       let errorMsg = null;
 
-      if (account && account.refreshToken && account.clientId && account.clientSecret) {
-        try {
-          await sendGmailAPI(account, schedule.to, schedule.subject, schedule.body, schedule.attachments || []);
-          isSuccess = true;
-        } catch (sendErr) {
-          console.error(`[Scheduler] Google API scheduled dispatch failed for ${schedule.to}:`, sendErr.message);
-          isSuccess = false;
-          errorMsg = `Google API Delivery Failure: ${sendErr.message}`;
+      if (account) {
+        if (account.connectionType === 'SMTP App Password') {
+          try {
+            await sendSMTP(account, schedule.to, schedule.subject, schedule.body, schedule.attachments || []);
+            isSuccess = true;
+          } catch (sendErr) {
+            console.error(`[Scheduler] SMTP scheduled dispatch failed for ${schedule.to}:`, sendErr.message);
+            isSuccess = false;
+            errorMsg = `SMTP Delivery Failure: ${sendErr.message}`;
+          }
+        } else if (account.connectionType === 'Gmail OAuth' && account.refreshToken && account.clientId && account.clientSecret) {
+          try {
+            await sendGmailAPI(account, schedule.to, schedule.subject, schedule.body, schedule.attachments || []);
+            isSuccess = true;
+          } catch (sendErr) {
+            console.error(`[Scheduler] Google API scheduled dispatch failed for ${schedule.to}:`, sendErr.message);
+            isSuccess = false;
+            errorMsg = `Google API Delivery Failure: ${sendErr.message}`;
+          }
+        } else {
+          isSuccess = Math.random() > 0.05;
+          errorMsg = isSuccess ? null : 'Mail server bounced: Authentication credentials incomplete';
         }
       } else {
         // Mock email dispatch for demo accounts

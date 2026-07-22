@@ -65,7 +65,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
 // 2. Connect new Gmail Account (creates record with clientId/clientSecret)
 router.post('/connect', authMiddleware, async (req, res) => {
-  const { email, connectionType, clientId, clientSecret } = req.body;
+  const { email, connectionType, clientId, clientSecret, refreshToken } = req.body;
   try {
     // Check if account already linked to this user
     const existing = await ConnectedAccount.findOne({
@@ -80,10 +80,11 @@ router.post('/connect', authMiddleware, async (req, res) => {
     const newAccount = await ConnectedAccount.create({
       email,
       connectionType: connectionType || 'Gmail OAuth',
-      status: 'pending_auth', // Requires OAuth authorization
+      status: connectionType === 'SMTP App Password' ? 'connected' : 'pending_auth', // SMTP is pre-authorized
       isPrimary: count === 0,
       clientId: clientId || null,
       clientSecret: clientSecret || null,
+      refreshToken: refreshToken || null, // Stores SMTP Port if connectionType is SMTP App Password
       userId: req.userId
     });
 
