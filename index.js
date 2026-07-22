@@ -2,6 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import sequelize from './config/database.js';
+import dns from 'dns';
+
+// Force DNS resolution to prioritize IPv4 over IPv6. 
+// This prevents ENETUNREACH failures during SMTP handshakes (e.g. Gmail SMTP IPv6 network unreachability).
+dns.setDefaultResultOrder('ipv4first');
 
 // Import Models for Sync
 import User from './models/User.js';
