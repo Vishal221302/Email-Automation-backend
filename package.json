@@ -17,6 +17,7 @@
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.9.7",
     "nodemailer": "^9.0.3",
+    "resend": "^6.18.0",
     "sequelize": "^6.37.3"
   },
   "devDependencies": {

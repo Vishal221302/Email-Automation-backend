@@ -85,6 +85,8 @@ async function sendGmailAPI(account, to, subject, body, attachments = []) {
   return res.data;
 }
 
+import { Resend } from 'resend';
+
 // Helper to detect SMTP host from email domain
 function getSmtpHost(email) {
   const domain = (email || '').split('@')[1] || '';
@@ -127,9 +129,9 @@ async function sendSMTP(account, to, subject, body, attachments = []) {
     tls: {
       rejectUnauthorized: false
     },
-    connectionTimeout: 30000,
-    greetingTimeout: 15000,
-    socketTimeout: 30000
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000
   });
 
   const mailOptions = {
@@ -147,9 +149,58 @@ async function sendSMTP(account, to, subject, body, attachments = []) {
     }).filter(Boolean)
   };
 
-  const info = await transporter.sendMail(mailOptions);
-  console.log('[SMTP] Mail sent successfully:', info.messageId);
-  return info;
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('[SMTP] Mail sent successfully:', info.messageId);
+    return info;
+  } catch (sendErr) {
+    if (sendErr.code === 'ETIMEDOUT' || sendErr.message.includes('timeout') || sendErr.message.includes('Connection timeout')) {
+      throw new Error('Connection timeout: Cloud host (Render) blocked outbound SMTP ports (465/587). Please add RESEND_API_KEY to Render Environment Variables for HTTPS delivery.');
+    }
+    throw sendErr;
+  }
+}
+
+// Main Email Dispatcher (Resend HTTPS API first if API key configured, otherwise Nodemailer SMTP)
+async function dispatchEmail(account, to, subject, body, attachments = []) {
+  if (process.env.RESEND_API_KEY) {
+    try {
+      console.log(`[Resend API] Dispatching email to ${to} via HTTPS API...`);
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      
+      const resendAttachments = (attachments || []).map(file => {
+        if (!file.data) return null;
+        return {
+          filename: file.name,
+          content: file.data
+        };
+      }).filter(Boolean);
+
+      const senderAddr = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
+      const payload = {
+        from: senderAddr,
+        to: [to],
+        subject: subject,
+        html: body.replace(/\n/g, '<br>'),
+      };
+
+      if (resendAttachments.length > 0) {
+        payload.attachments = resendAttachments;
+      }
+
+      const { data, error } = await resend.emails.send(payload);
+      if (error) {
+        throw new Error(error.message || 'Resend API dispatch failed');
+      }
+      console.log('[Resend API] Email delivered successfully:', data?.id || data);
+      return data;
+    } catch (apiErr) {
+      console.warn('[Resend API Warning] Falling back to SMTP:', apiErr.message);
+    }
+  }
+
+  return await sendSMTP(account, to, subject, body, attachments);
 }
 
 
@@ -194,7 +245,7 @@ router.post('/send-now', authMiddleware, async (req, res) => {
     if (account) {
       if (account.connectionType === 'SMTP App Password') {
         try {
-          await sendSMTP(account, to, subject, body, attachments || []);
+          await dispatchEmail(account, to, subject, body, attachments || []);
           isSuccess = true;
         } catch (sendErr) {
           console.error('[SMTP] Mail dispatch failed:', sendErr.message);
@@ -371,7 +422,7 @@ router.post('/scheduled/send-now/:id', authMiddleware, async (req, res) => {
     if (account) {
       if (account.connectionType === 'SMTP App Password') {
         try {
-          await sendSMTP(account, schedule.to, schedule.subject, schedule.body, schedule.attachments || []);
+          await dispatchEmail(account, schedule.to, schedule.subject, schedule.body, schedule.attachments || []);
           isSuccess = true;
         } catch (sendErr) {
           console.error('[SMTP] Scheduled mail dispatch failed:', sendErr.message);
@@ -493,7 +544,7 @@ async function checkAndSendScheduledEmails() {
       if (account) {
         if (account.connectionType === 'SMTP App Password') {
           try {
-            await sendSMTP(account, schedule.to, schedule.subject, schedule.body, schedule.attachments || []);
+            await dispatchEmail(account, schedule.to, schedule.subject, schedule.body, schedule.attachments || []);
             isSuccess = true;
           } catch (sendErr) {
             console.error(`[Scheduler] SMTP scheduled dispatch failed for ${schedule.to}:`, sendErr.message);
