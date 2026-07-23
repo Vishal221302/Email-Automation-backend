@@ -85,12 +85,37 @@ async function sendGmailAPI(account, to, subject, body, attachments = []) {
   return res.data;
 }
 
+// Helper to detect SMTP host from email domain
+function getSmtpHost(email) {
+  const domain = (email || '').split('@')[1] || '';
+  const domainMap = {
+    'gmail.com': 'smtp.gmail.com',
+    'googlemail.com': 'smtp.gmail.com',
+    'yahoo.com': 'smtp.mail.yahoo.com',
+    'yahoo.in': 'smtp.mail.yahoo.com',
+    'outlook.com': 'smtp-mail.outlook.com',
+    'hotmail.com': 'smtp-mail.outlook.com',
+    'live.com': 'smtp-mail.outlook.com',
+    'icloud.com': 'smtp.mail.me.com',
+    'webfymedia.com': 'smtp.gmail.com',  // custom domain via Google Workspace
+  };
+  return domainMap[domain.toLowerCase()] || `smtp.${domain}`; // fallback: smtp.yourdomain.com
+}
+
 // Helper to send real emails via SMTP using Nodemailer
 async function sendSMTP(account, to, subject, body, attachments = []) {
-  const host = account.clientId || 'smtp.gmail.com';
-  const port = parseInt(account.refreshToken) || 465;
-  const secure = port === 465; // SSL/TLS for 465, STARTTLS for 587
-  
+  // Auto-detect SMTP host: use saved clientId first, else detect from email domain
+  const host = (account.clientId && account.clientId.includes('.')) 
+    ? account.clientId 
+    : getSmtpHost(account.email);
+
+  // Use saved port or smart defaults: Gmail/iCloud use 465 (SSL), Outlook uses 587
+  const savedPort = parseInt(account.refreshToken);
+  const port = savedPort || (host.includes('outlook') ? 587 : 465);
+  const secure = port === 465;
+
+  console.log(`[SMTP] Connecting to ${host}:${port} (secure=${secure}) as ${account.email}`);
+
   const transporter = nodemailer.createTransport({
     host,
     port,
@@ -101,11 +126,14 @@ async function sendSMTP(account, to, subject, body, attachments = []) {
     },
     tls: {
       rejectUnauthorized: false
-    }
+    },
+    connectionTimeout: 30000,
+    greetingTimeout: 15000,
+    socketTimeout: 30000
   });
 
   const mailOptions = {
-    from: account.email,
+    from: `"${account.email}" <${account.email}>`,
     to,
     subject,
     html: body.replace(/\n/g, '<br>'), // Preserve linebreaks

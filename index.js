@@ -26,16 +26,23 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Enable Dynamic CORS (Supports localhost on any port to prevent Vite port-shift errors)
-// const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
-const allowedOrigins = ['https://email-automation-ashy-nu.vercel.app'];
+// Enable Dynamic CORS (Supports both Live Frontend and Localhost development)
+const allowedOrigins = [
+  'https://email-automation-ashy-nu.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174'
+];
+
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
+    
     // Allow any localhost port dynamically (e.g., localhost:5173, localhost:5174, etc.)
-    // const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-    // if (isLocalhost || allowedOrigins.includes(origin)) {
-    if (allowedOrigins.includes(origin)) {
+    const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+    
+    if (isLocalhost || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
